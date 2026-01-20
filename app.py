@@ -27,7 +27,8 @@ if not st.session_state.usuario_activo:
     
     c = st.text_input("Clave de Acceso:", type="password")
     if st.button("Entrar a Sesión"):
-        if c.strip() == "DEMO" or (c.strip() in st.secrets["access_keys"]):
+        #if c.strip() == "DEMO" or (c.strip() in st.secrets["access_keys"]):
+        if c.strip() in st.secrets["access_keys"]:
             nombre = "Visitante" if c.strip() == "DEMO" else st.secrets["access_keys"][c.strip()]
             st.session_state.usuario_activo = nombre
             st.rerun()
