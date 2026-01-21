@@ -21,7 +21,7 @@ if not st.session_state.usuario_activo:
     except: pass
     
     # Música relajante (Piano/Ambient)
-    st.audio("https://cdn.pixabay.com/audio/2022/03/09/audio_c8c8a73467.mp3", loop=True, autoplay=True)
+    st.audio("https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3", loop=True, autoplay=True)
     
     st.info("🔑 Clave de Acceso para Invitados: **DEMO**")
     
