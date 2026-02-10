@@ -40,13 +40,13 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- GESTIÓN DE SECRETOS (BLINDADA) ---
-#try:
-    #GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+try:
+    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
     # Intentamos leer las claves, si falla, usamos un fallback seguro
-    #ACCESO_KEYS = st.secrets.get("access_keys", {"demo": "Usuario Demo"})
-#except Exception as e:
-    #st.error(f"Error de configuración de Secretos: {e}")
-    #st.stop()
+    ACCESO_KEYS = st.secrets.get("access_keys", {"demo": "Usuario Demo"})
+except Exception as e:
+    st.error(f"Error de configuración de Secretos: {e}")
+    st.stop()
 
 # Inicializar Estado
 if "mensajes" not in st.session_state: st.session_state.mensajes = []
@@ -54,9 +54,8 @@ if "usuario_activo" not in st.session_state: st.session_state.usuario_activo = N
 if "modo_terapia" not in st.session_state: st.session_state.modo_terapia = "Escucha Empática"
 
 # Configurar Gemini
-#genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash').generate_content(full_prompt)
-#model = genai.GenerativeModel('gemini-2.5-flash')
+genai.configure(api_key=GOOGLE_API_KEY)
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # ==========================================
 # 🔊 2. MOTORES DE VOZ (SOLO GOOGLE GRATIS)
@@ -217,6 +216,9 @@ if prompt_user:
                 msg = {"role": "assistant", "content": texto_ia}
                 if audio_bytes: msg["audio"] = audio_bytes
                 st.session_state.mensajes.append(msg)
+                
+            except Exception as e:
+                st.error(f"Error: {e}")
                 
             except Exception as e:
                 st.error(f"Error: {e}")
