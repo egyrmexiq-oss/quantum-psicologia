@@ -55,7 +55,7 @@ if "modo_terapia" not in st.session_state: st.session_state.modo_terapia = "Escu
 
 # Configurar Gemini
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash')
+model = genai.GenerativeModel('gemini-2.0-flash-lite')
 
 # ==========================================
 # 🔊 2. MOTORES DE VOZ (SOLO GOOGLE GRATIS)
