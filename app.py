@@ -30,12 +30,12 @@ GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY")
 ELEVEN_KEY = st.secrets.get("ELEVENLABS_API_KEY")
 ACCESO_KEYS = st.secrets.get("access_keys", {})
 
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-else:
-    st.error("Falta API Key")
-    st.stop()
+#if GOOGLE_API_KEY:
+    #genai.configure(api_key=GOOGLE_API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
+#else:
+    #st.error("Falta API Key")
+    #st.stop()
 
 # ==========================================
 # 🔊 2. MOTORES DE VOZ (PREMIUM + RESPALDO)
