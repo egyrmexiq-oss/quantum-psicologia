@@ -28,7 +28,7 @@ ELEVEN_KEY = st.secrets.get("ELEVENLABS_API_KEY")
 # Configurar Gemini
 #if GOOGLE_API_KEY:
     #genai.configure(api_key=GOOGLE_API_KEY)
-    model = genai.GenerativeModel('gemini-2.5-flash') # Modelo rápido y multimodal
+model = genai.GenerativeModel('gemini-2.5-flash') # Modelo rápido y multimodal
 #else:
     #st.error("Falta la GOOGLE_API_KEY")
     #st.stop()
