@@ -32,13 +32,13 @@ ELEVEN_KEY = st.secrets.get("ELEVENLABS_API_KEY")
 ACCESO_KEYS = st.secrets.get("access_keys", {})
 
 # Configurar Gemini (Modelo Flash para rapidez y audio)
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
+#if GOOGLE_API_KEY:
+    #genai.configure(api_key=GOOGLE_API_KEY)
     # Usamos el modelo Flash que soporta audio nativo
-    model = genai.GenerativeModel('gemini-1.5-flash')
-else:
-    st.error("⚠️ Falta la GOOGLE_API_KEY en Secrets.")
-    st.stop()
+model = genai.GenerativeModel('gemini-2.5-flash')
+#else:
+    #st.error("⚠️ Falta la GOOGLE_API_KEY en Secrets.")
+    #st.stop()
 
 # ==========================================
 # 🔊 2. FUNCIONES (MOTOR)
