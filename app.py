@@ -22,16 +22,16 @@ if "mensajes" not in st.session_state:
     st.session_state.mensajes = []
 
 # Configurar API Keys
-GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY")
+#GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY")
 ELEVEN_KEY = st.secrets.get("ELEVENLABS_API_KEY")
 
 # Configurar Gemini
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash') # Modelo rápido y multimodal
-else:
-    st.error("Falta la GOOGLE_API_KEY")
-    st.stop()
+#if GOOGLE_API_KEY:
+    #genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel('gemini-2.5-flash') # Modelo rápido y multimodal
+#else:
+    #st.error("Falta la GOOGLE_API_KEY")
+    #st.stop()
 
 # ==========================================
 # 🔊 2. FUNCIONES DE VOZ (MOTOR OCULTO)
