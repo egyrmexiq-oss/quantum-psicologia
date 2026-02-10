@@ -31,16 +31,16 @@ ELEVEN_KEY = st.secrets.get("ELEVENLABS_API_KEY")
 ACCESO_KEYS = st.secrets.get("access_keys", {})
 
 # Configurar Gemini (CORRECCIÓN: Usamos 1.5-flash que es el ESTÁNDAR)
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
-    try:
+#if GOOGLE_API_KEY:
+    #genai.configure(api_key=GOOGLE_API_KEY)
+    #try:
         # Usamos 1.5-flash. La versión 2.5 no existe públicamente aún y causa error.
-        model = genai.GenerativeModel('gemini-1.5-flash')
-    except Exception as e:
-        st.error(f"Error configurando modelo: {e}")
-else:
-    st.error("⚠️ Falta la GOOGLE_API_KEY en Secrets.")
-    st.stop()
+model = genai.GenerativeModel('gemini-1.5-flash')
+    #except Exception as e:
+        #st.error(f"Error configurando modelo: {e}")
+#else:
+    #st.error("⚠️ Falta la GOOGLE_API_KEY en Secrets.")
+    #st.stop()
 
 # ==========================================
 # 🔊 2. FUNCIONES (MOTOR)
