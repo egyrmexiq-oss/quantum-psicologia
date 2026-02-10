@@ -54,8 +54,9 @@ if "usuario_activo" not in st.session_state: st.session_state.usuario_activo = N
 if "modo_terapia" not in st.session_state: st.session_state.modo_terapia = "Escucha Empática"
 
 # Configurar Gemini
-genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash')
+#genai.configure(api_key=GOOGLE_API_KEY)
+res = genai.GenerativeModel('gemini-2.5-flash').generate_content(full_prompt)
+#model = genai.GenerativeModel('gemini-2.5-flash')
 
 # ==========================================
 # 🔊 2. MOTORES DE VOZ (SOLO GOOGLE GRATIS)
