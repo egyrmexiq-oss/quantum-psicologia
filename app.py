@@ -61,33 +61,29 @@ model = genai.GenerativeModel('gemini-2.5-flash')
 # 🔊 2. MOTORES DE VOZ (SOLO GOOGLE GRATIS)
 # ==========================================
 
-def generar_audio_gtts(texto):
-    """Genera audio usando Google Text-to-Speech (Gratis y Robusto)"""
-    try:
-        tts = gTTS(text=texto, lang='es')
-        fp = BytesIO()
-        tts.write_to_fp(fp)
-        return fp.getvalue()
-    except Exception as e:
-        return None
-
 def transcribir_google(audio_widget):
-    """Convierte Voz a Texto"""
+    """Convierte Voz a Texto sin ajuste de ruido agresivo"""
     if not audio_widget: return None
     r = sr.Recognizer()
     try:
-        # IMPORTANTE: Crear una copia para evitar el error de archivo cerrado
+        # Leemos los bytes y creamos copia en memoria
         audio_bytes = audio_widget.read()
         import io
         audio_copy = io.BytesIO(audio_bytes)
-
+        
         with sr.AudioFile(audio_copy) as source:
-            # CAMBIO CLAVE AQUÍ: Reducimos duration a 0.2 o 0.3
-            r.adjust_for_ambient_noise(source, duration=0.1) 
+            # ---------------------------------------------------------
+            # CAMBIO CLAVE: QUITAMOS adjust_for_ambient_noise
+            # Para audios cortos de st.audio_input, esto estorba más 
+            # de lo que ayuda. Google limpiará el audio en la nube.
+            # ---------------------------------------------------------
             
-            # Ahora sí queda audio suficiente para reconocer la palabra "Demo"
-            return r.recognize_google(r.record(source), language="es-MX")
-    except: return None
+            # Leemos todo el audio directamente
+            audio_data = r.record(source)
+            return r.recognize_google(audio_data, language="es-MX")
+    except Exception as e:
+        # print(e) # Descomenta para ver errores en consola si es necesario
+        return None
 
 # ==========================================
 # 🔐 3. LOGIN (PORTERO)
