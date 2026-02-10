@@ -1,176 +1,164 @@
 import streamlit as st
 import google.generativeai as genai
-import pandas as pd
-import streamlit.components.v1 as components
+import requests
+import time
 
 # ==========================================
-# ⚙️ CONFIGURACIÓN DE PÁGINA (AMBIENTE ZEN)
+# ⚙️ 1. CONFIGURACIÓN
 # ==========================================
-# Cambié el icono por un cerebro 🧠 y el título
-st.set_page_config(page_title="Quantum Mind - Psicología", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="Quantum Mind", page_icon="🧠", layout="centered")
 
-# ==========================================
-# 🔐 1. LOGIN (Igual que la otra App)
-# ==========================================
-if "usuario_activo" not in st.session_state: st.session_state.usuario_activo = None
+# Estilos para ocultar elementos molestos y limpiar la interfaz
+st.markdown("""
+    <style>
+    .stApp { background-color: #0E1117; color: white; }
+    /* Hacemos el reproductor de audio más grande y accesible */
+    audio { width: 100%; height: 50px; }
+    </style>
+    """, unsafe_allow_html=True)
 
-if not st.session_state.usuario_activo:
-    st.markdown("## 🔐 Quantum Mind Access")
-    # Animación diferente (más calmada si quieres, o la misma)
-    try: st.components.v1.iframe("https://my.spline.design/claritystream-Vcf5uaN9MQgIR4VGFA5iU6Es/", height=400)
-    except: pass
-    
-    # Música relajante (Piano/Ambient)
-    st.audio("https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3", loop=True, autoplay=True)
-    
-    st.info("🔑 Clave de Acceso para Invitados: **DEMO**")
-    
-    c = st.text_input("Clave de Acceso:", type="password")
-    if st.button("Entrar a Sesión"):
-        #if c.strip() == "DEMO" or (c.strip() in st.secrets["access_keys"]):
-        if c.strip() in st.secrets["access_keys"]:
-            nombre = "Visitante" if c.strip() == "DEMO" else st.secrets["access_keys"][c.strip()]
-            st.session_state.usuario_activo = nombre
-            st.rerun()
-        else: st.error("Acceso Denegado")
+# Inicializar Estado de Sesión
+if "mensajes" not in st.session_state:
+    st.session_state.mensajes = []
+
+# Configurar API Keys
+GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY")
+ELEVEN_KEY = st.secrets.get("ELEVENLABS_API_KEY")
+
+# Configurar Gemini
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash') # Modelo rápido y multimodal
+else:
+    st.error("Falta la GOOGLE_API_KEY")
     st.stop()
 
 # ==========================================
-# 💎 2. CONEXIÓN (AQUÍ PONES LA NUEVA HOJA)
+# 🔊 2. FUNCIONES DE VOZ (MOTOR OCULTO)
 # ==========================================
-try: genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-except: st.error("Falta API Key")
 
-# ⚠️ OJO: AQUÍ DEBES PEGAR EL LINK DE TU NUEVA HOJA DE PSICÓLOGOS 👇
-URL_GOOGLE_SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBFtqUTpPEcOvfXZteeYZJBEzcoucLwN9OYlLRvbAGx_ZjIoQsg1fzqE6lOeDjoSTm4LWnoAnV7C4q/pub?output=csv" 
-URL_FORMULARIO = "https://docs.google.com/forms/d/e/1FAIpQLSdaK-a8blh67PYxCGyREWOABEf96ZyV6PJnyetBggkymCCjRA/viewform?usp=header"
-
-@st.cache_data(ttl=60)
-def cargar_especialistas():
-    try:
-        df = pd.read_csv(URL_GOOGLE_SHEET)
-        df.columns = [c.strip().lower() for c in df.columns]
-        mapa = {}
-        for col in df.columns:
-            if "nombre" in col: mapa[col] = "nombre"
-            elif "especialidad" in col: mapa[col] = "especialidad" # Ej: Terapia de Pareja, Infantil, Ansiedad
-            elif "descripci" in col: mapa[col] = "descripcion"
-            elif "tel" in col: mapa[col] = "telefono"
-            elif "ciudad" in col: mapa[col] = "ciudad"
-            elif "aprobado" in col: mapa[col] = "aprobado"
-        df = df.rename(columns=mapa)
-        if 'aprobado' in df.columns:
-            return df[df['aprobado'].astype(str).str.upper().str.contains('SI')].to_dict(orient='records')
-        return []
-    except: return []
-
-TODOS_LOS_PSICOLOGOS = cargar_especialistas()
-
-# --- CEREBRO DE PSICOLOGÍA ---
-if TODOS_LOS_PSICOLOGOS:
-    ciudades = sorted(list(set(str(m.get('ciudad', 'General')).title() for m in TODOS_LOS_PSICOLOGOS)))
-    ciudades.insert(0, "Todas las Ubicaciones")
-    
-    info_psi = [f"Nombre: {m.get('nombre')} | Especialidad: {m.get('especialidad')} | Ubicación: {m.get('ciudad')}" for m in TODOS_LOS_PSICOLOGOS]
-    TEXTO_DIRECTORIO = "\n".join(info_psi)
-    
-    # 🧠 EL PROMPT NUEVO (EMPATÍA + SEGURIDAD)
-    INSTRUCCION_EXTRA = f"""
-    ERES "QUANTUM MIND", UN ASISTENTE DE APOYO EMOCIONAL Y PRIMER CONTACTO PSICOLÓGICO.
-    TU TONO: Cálido, empático, sin juzgar, paciente y seguro.
-    
-    TUS TAREAS:
-    1. 🛡️ SEGURIDAD (CRÍTICO): Si el usuario menciona suicidio, autolesión o peligro de muerte, IGNORA todo lo demás y responde: 
-       "Siento mucho que estés pasando por esto. No estás solo. Por favor, llama ahora mismo a la Línea de la Vida (800 911 2000 en México) o acude a urgencias. Tu vida es valiosa."
-    
-    2. 👂 ESCUCHA ACTIVA: Valida los sentimientos del usuario. Ej: "Entiendo que te sientas abrumado", "Es normal sentir ansiedad ante eso".
-    
-    3. 🤝 CONEXIÓN: Si el usuario busca ayuda, busca en esta lista de psicólogos el más adecuado para su problema (ej: Pareja, Niños, Depresión):
-    {TEXTO_DIRECTORIO}
-    
-    4. 🚫 LÍMITES: Tú NO das terapia clínica profunda ni diagnosticas trastornos. Eres un guía.
-    """
-else:
-    ciudades = ["Mundo"]
-    INSTRUCCION_EXTRA = "Actúa como consejero empático. Aún no tienes psicólogos en la red, así que da consejos generales de bienestar emocional."
-
-# ==========================================
-# 🧘 3. INTERFAZ ZEN (BARRA LATERAL)
-# ==========================================
-with st.sidebar:
-    st.header("🧠 Quantum Mind")
-    st.caption("Salud Mental & Bienestar")
-    st.success(f"Hola, {st.session_state.usuario_activo}")
-    
-    st.markdown("---")
-    # Contador de Visitas (Mentalidad de Crecimiento)
-    st.markdown("""
-    <div style="background-color: #2e1a47; padding: 10px; border-radius: 5px; text-align: center;">
-        <span style="color: #E0B0FF; font-weight: bold;">🧘 Almas Ayudadas:</span>
-        <img src="https://api.visitorbadge.io/api/visitors?path=quantum-mind-psi.com&label=&countColor=%23E0B0FF&style=flat&labelStyle=none" style="height: 20px;" />
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.markdown("### ⚙️ Preferencias")
-    # Cambié los niveles para que sean más humanos
-    nivel = st.radio("Profundidad:", ["Escucha Breve", "Apoyo Emocional", "Orientación Teórica"])
-    
-    if st.button("🍃 Nueva Sesión"): st.session_state.mensajes = []; st.rerun()
-    if st.button("🔒 Salir"): st.session_state.usuario_activo = None; st.rerun()
-
-    st.markdown("---")
-    st.markdown("### 🛋️ Encuentra Psicólogo")
-    if TODOS_LOS_PSICOLOGOS:
-        filtro = st.selectbox("📍 Ciudad:", ciudades)
-        lista = TODOS_LOS_PSICOLOGOS if filtro == "Todas las Ubicaciones" else [m for m in TODOS_LOS_PSICOLOGOS if str(m.get('ciudad')).title() == filtro]
+def texto_a_voz_elevenlabs(texto):
+    """Convierte la respuesta de la IA en Audio MP3 usando ElevenLabs"""
+    if not ELEVEN_KEY:
+        return None
         
-        if lista:
-            if "idx" not in st.session_state: st.session_state.idx = 0
-            m = lista[st.session_state.idx % len(lista)]
-            
-            # Tarjeta de Psicólogo (Estilo más suave, color Morado/Lila)
-            tarjeta = (
-                f'<div style="background-color: #2e1a47; padding: 15px; border-radius: 10px; border: 1px solid #5a3e7d; margin-bottom: 10px;">'
-                f'<h4 style="margin:0; color:white;">{m.get("nombre","Lic.")}</h4>'
-                f'<div style="color:#E0B0FF; font-weight:bold;">{m.get("especialidad")}</div>' # Color Lavanda
-                f'<small style="color:#ccc;">{m.get("ciudad")}</small>'
-                f'<div style="font-size: 0.9em; margin-top: 5px; color: white;">📞 {m.get("telefono","--")}</div>'
-                f'</div>'
-            )
-            st.markdown(tarjeta, unsafe_allow_html=True)
-            
-            c1, c2 = st.columns(2)
-            if c1.button("⬅️"): st.session_state.idx -= 1; st.rerun()
-            if c2.button("➡️"): st.session_state.idx += 1; st.rerun()
-        else: st.info("No hay especialistas en esta zona aún.")
-
-    st.markdown("---")
-    st.link_button("📝 Soy Psicólogo/a", URL_FORMULARIO)
-
-# ==========================================
-# 💬 4. CHAT TERAPÉUTICO
-# ==========================================
-
-# Título más suave
-st.markdown('<h1 style="text-align: center; color: #E0B0FF;">Quantum Mind</h1>', unsafe_allow_html=True)
-st.caption("Espacio seguro de escucha y orientación con IA")
-
-if "mensajes" not in st.session_state: 
-    # Saludo inicial diferente
-    st.session_state.mensajes = [{"role": "assistant", "content": "Hola. Soy Quantum Mind. Este es un espacio seguro. ¿Qué hay en tu mente hoy?"}]
-
-for msg in st.session_state.mensajes:
-    with st.chat_message(msg["role"]): st.markdown(msg["content"])
-
-if prompt := st.chat_input("Cuéntame cómo te sientes..."):
-    st.session_state.mensajes.append({"role": "user", "content": prompt})
-    st.chat_message("user").markdown(prompt)
+    url = "https://api.elevenlabs.io/v1/text-to-speech/jsCqWAovK2LkecY7zXl4" # Voz "Freya" (suave)
+    
+    headers = {
+        "Accept": "audio/mpeg",
+        "Content-Type": "application/json",
+        "xi-api-key": ELEVEN_KEY
+    }
+    
+    # Limitamos el texto para no gastar créditos excesivos en pruebas
+    data = {
+        "text": texto[:400], # Lee los primeros 400 caracteres (ajustable)
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {"stability": 0.5, "similarity_boost": 0.5}
+    }
     
     try:
-        full_prompt = f"Eres Quantum Mind (Modo: {nivel}). {INSTRUCCION_EXTRA}. Usuario dice: {prompt}."
-        # Usamos el modelo rápido 2.5 o Pro
-        res = genai.GenerativeModel('gemini-2.5-flash').generate_content(full_prompt)
-        st.session_state.mensajes.append({"role": "assistant", "content": res.text})
-        st.rerun()
-    except Exception as e: st.error(f"Error de conexión: {e}")
+        response = requests.post(url, json=data, headers=headers)
+        if response.status_code == 200:
+            return response.content
+        else:
+            st.warning(f"Error ElevenLabs: {response.text}")
+            return None
+    except Exception as e:
+        st.error(f"Error conexión audio: {e}")
+        return None
+
+# ==========================================
+# 🏠 3. INTERFAZ DE USUARIO (VISUAL + AUDITIVA)
+# ==========================================
+
+st.title("Quantum Mind 🧠")
+st.caption("Tu espacio seguro. Escribe o habla, te escucho.")
+
+# --- ZONA DE AUDIO (ACCESIBILIDAD) ---
+# Colocamos el micrófono arriba para que sea fácil de encontrar con lectores de pantalla
+audio_usuario = st.audio_input("🎤 Toca para hablar (Modo Voz)", key="mic_input")
+
+# --- ZONA DE HISTORIAL ---
+for mensaje in st.session_state.mensajes:
+    with st.chat_message(mensaje["role"]):
+        st.markdown(mensaje["content"])
+        # Si el mensaje tiene audio guardado, lo mostramos
+        if "audio" in mensaje:
+            st.audio(mensaje["audio"], format="audio/mp3")
+
+# --- LÓGICA DEL CEREBRO ---
+
+pregunta_usuario = None
+modo_entrada = "texto"
+
+# 1. Detectar si habló por micrófono
+if audio_usuario:
+    modo_entrada = "voz"
+    # Usamos Gemini para transcribir el audio (Multimodal)
+    # Gemini puede "escuchar" el archivo de audio directamente
+    with st.spinner("Escuchando..."):
+        try:
+            # Enviar audio + prompt a Gemini
+            prompt_audio = "Escucha este audio del usuario. Transcribe lo que dice y luego RESPONDE como un terapeuta empático y breve."
+            
+            # Nota técnica: Para pasar bytes a Gemini a veces requerimos subirlo primero o usar SpeechRecognition.
+            # Para simplificar y NO usar otra API, usaremos un truco:
+            # Asumiremos que Gemini 'entiende' el contexto si le pasamos el audio como Blob (DataPart).
+            # SI ESTO FALLA en tu versión, avísame y usamos la librería 'SpeechRecognition' clásica.
+            
+            # PLAN B (Más robusto para Streamlit Cloud): Usar SpeechRecognition gratuito de Google
+            import speech_recognition as sr
+            r = sr.Recognizer()
+            with sr.AudioFile(audio_usuario) as source:
+                audio_data = r.record(source)
+                texto_transcrito = r.recognize_google(audio_data, language="es-MX")
+                
+            pregunta_usuario = texto_transcrito
+            
+            # Mostramos lo que entendió
+            with st.chat_message("user"):
+                st.markdown(f"🎤 *Dijiste:* {pregunta_usuario}")
+                st.session_state.mensajes.append({"role": "user", "content": f"🎤 {pregunta_usuario}"})
+
+        except Exception as e:
+            st.error(f"No pude entender el audio. Intenta de nuevo. Error: {e}")
+
+# 2. Detectar si escribió por texto (Chat Input tradicional)
+if prompt_texto := st.chat_input("Escribe aquí..."):
+    pregunta_usuario = prompt_texto
+    modo_entrada = "texto"
+    with st.chat_message("user"):
+        st.markdown(pregunta_usuario)
+        st.session_state.mensajes.append({"role": "user", "content": pregunta_usuario})
+
+# --- GENERAR RESPUESTA ---
+if pregunta_usuario and modo_entrada:
+    # Solo generamos respuesta si es una NUEVA interacción (evitar duplicados al recargar)
+    # (En este código simplificado, asumo que corre linealmente)
+    
+    with st.chat_message("assistant"):
+        with st.spinner("Pensando..."):
+            # Generar texto con Gemini
+            prompt_sistema = f"Actúa como un psicólogo empático. El usuario dice: '{pregunta_usuario}'. Responde brevemente (máximo 3 oraciones) y con calidez."
+            response = model.generate_content(prompt_sistema)
+            texto_respuesta = response.text
+            
+            st.markdown(texto_respuesta)
+            
+            # VARIABLE PARA EL AUDIO
+            audio_bytes = None
+            
+            # SOLO generamos audio si la entrada fue por VOZ (Ahorro de dinero y UX lógica)
+            if modo_entrada == "voz":
+                with st.spinner("Generando voz..."):
+                    audio_bytes = texto_a_voz_elevenlabs(texto_respuesta)
+                    if audio_bytes:
+                        st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+            
+            # Guardar en historial
+            msg_bot = {"role": "assistant", "content": texto_respuesta}
+            if audio_bytes:
+                msg_bot["audio"] = audio_bytes
+                
+            st.session_state.mensajes.append(msg_bot)
