@@ -158,67 +158,80 @@ for msg in st.session_state.mensajes:
 
 # --- BARRA DE ENTRADA (FIXED FOOTER) ---
 # Usamos un contenedor al final para simular la barra fija visualmente
-st.markdown("---")
+# ... (Tu configuración inicial igual)
 
+# CAMBIO 1: Usa el modelo correcto
+model = genai.GenerativeModel('gemini-1.5-flash') 
+
+# ... (Funciones de audio iguales)
+
+# --- BARRA DE ENTRADA ---
+st.markdown("---")
 col_audio, col_texto = st.columns([1, 4])
+
 with col_audio:
+    # Agregamos un callback o validamos existencia
     input_audio = st.audio_input("🎙️", key="chat_mic")
+
 with col_texto:
     input_text = st.chat_input("Escribe aquí...")
 
-# LÓGICA DE PROCESAMIENTO
+# LÓGICA DE PROCESAMIENTO MEJORADA
 prompt_user = None
 es_audio = False
 
 if input_audio:
     es_audio = True
-    trans = transcribir_google(input_audio)
-    if trans: prompt_user = trans
+    # Extraer el audio solo una vez
+    with st.spinner("Transcribiendo..."):
+        trans = transcribir_google(input_audio)
+        if trans:
+            prompt_user = trans
+        else:
+            st.warning("No se detectó voz clara.")
+            # Esto evita que se quede procesando el audio erróneo
+            prompt_user = None 
 
 elif input_text:
     prompt_user = input_text
 
 # CEREBRO Y RESPUESTA
 if prompt_user:
-    # 1. Mostrar Usuario
-    with st.chat_message("user"):
-        if es_audio: st.markdown(f"🎤 {prompt_user}")
-        else: st.markdown(prompt_user)
-    
+    # 1. Mostrar y Guardar Usuario
     st.session_state.mensajes.append({"role": "user", "content": f"{'🎤 ' if es_audio else ''}{prompt_user}"})
+    
+    # Forzamos que se muestre inmediatamente
+    with st.chat_message("user"):
+        st.markdown(f"{'🎤 ' if es_audio else ''}{prompt_user}")
 
     # 2. Instrucción IA
-    instruccion = ""
-    if st.session_state.modo_terapia == "Escucha Empática":
-        instruccion = "Solo valida emociones. Di 'te entiendo', 'es válido'. NO des consejos. Haz una pregunta suave."
-    else:
-        instruccion = "Sé un coach proactivo. Da 2 pasos prácticos o soluciones concretas. Sé breve."
+    instruccion = (
+        "Solo valida emociones. Di 'te entiendo', 'es válido'. NO des consejos. Haz una pregunta suave." 
+        if st.session_state.modo_terapia == "Escucha Empática" 
+        else "Sé un coach proactivo. Da 2 pasos prácticos. Sé breve."
+    )
 
     # 3. Generar
     with st.chat_message("assistant"):
-        with st.spinner("..."):
+        with st.spinner("Pensando..."):
             try:
-                # Generar Texto
                 full_prompt = f"Actúa como psicólogo. {instruccion}. Usuario: '{prompt_user}'. Respuesta muy breve."
                 res = model.generate_content(full_prompt)
                 texto_ia = res.text
+                
                 st.markdown(texto_ia)
                 
-                # Generar Audio (Solo si usó voz)
                 audio_bytes = None
                 if es_audio:
-                    # Usamos gTTS (Google) - GRATIS y FIABLE
                     audio_bytes = generar_audio_gtts(texto_ia)
                     if audio_bytes:
                         st.audio(audio_bytes, format="audio/mp3", autoplay=True)
                 
-                # Guardar
-                msg = {"role": "assistant", "content": texto_ia}
-                if audio_bytes: msg["audio"] = audio_bytes
-                st.session_state.mensajes.append(msg)
+                # Guardar en historial
+                st.session_state.mensajes.append({"role": "assistant", "content": texto_ia, "audio": audio_bytes})
                 
+                # RE-RUN para limpiar el widget de audio_input y evitar bucles
+                st.rerun()
+
             except Exception as e:
-                st.error(f"Error: {e}")
-                
-            except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Error en la IA: {e}")
