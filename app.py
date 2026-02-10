@@ -76,11 +76,20 @@ def transcribir_google(audio_widget):
     if not audio_widget: return None
     r = sr.Recognizer()
     try:
-        with sr.AudioFile(audio_widget) as source:
+        # --- CORRECCIÓN AQUÍ ---
+        # 1. Leemos los bytes y creamos una copia en memoria
+        # Esto evita que sr.AudioFile "cierre" el widget original de Streamlit
+        audio_bytes = audio_widget.read()
+        audio_copy = BytesIO(audio_bytes)
+        
+        # 2. Usamos la copia
+        with sr.AudioFile(audio_copy) as source:
             # Ajustamos ruido ambiental para mejorar precisión
             r.adjust_for_ambient_noise(source) 
             return r.recognize_google(r.record(source), language="es-MX")
-    except: return None
+    except Exception as e:
+        # Puedes imprimir 'e' en la consola para depurar si gustas
+        return None
 
 # ==========================================
 # 🔐 3. LOGIN (PORTERO)
