@@ -2,5 +2,6 @@ streamlit>=1.39.0
 google-generativeai
 requests
 SpeechRecognition
+gTTS
 fpdf
 pandas
