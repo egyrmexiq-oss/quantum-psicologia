@@ -83,7 +83,7 @@ def transcribir_google(audio_widget):
 
         with sr.AudioFile(audio_copy) as source:
             # CAMBIO CLAVE AQUÍ: Reducimos duration a 0.2 o 0.3
-            r.adjust_for_ambient_noise(source, duration=0.3) 
+            r.adjust_for_ambient_noise(source, duration=0.1) 
             
             # Ahora sí queda audio suficiente para reconocer la palabra "Demo"
             return r.recognize_google(r.record(source), language="es-MX")
