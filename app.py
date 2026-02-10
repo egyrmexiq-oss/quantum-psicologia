@@ -161,7 +161,7 @@ for msg in st.session_state.mensajes:
 # ... (Tu configuración inicial igual)
 
 # CAMBIO 1: Usa el modelo correcto
-model = genai.GenerativeModel('gemini-1.5-flash') 
+model = genai.GenerativeModel('gemini-2.5-flash') 
 
 # ... (Funciones de audio iguales)
 
