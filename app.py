@@ -55,7 +55,7 @@ if "modo_terapia" not in st.session_state: st.session_state.modo_terapia = "Escu
 
 # Configurar Gemini
 #genai.configure(api_key=GOOGLE_API_KEY)
-res = genai.GenerativeModel('gemini-2.5-flash').generate_content(full_prompt)
+model = genai.GenerativeModel('gemini-2.5-flash').generate_content(full_prompt)
 #model = genai.GenerativeModel('gemini-2.5-flash')
 
 # ==========================================
