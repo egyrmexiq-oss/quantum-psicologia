@@ -1,4 +1,5 @@
-streamlit
+streamlit>=1.39.0
 google-generativeai>=0.7.2
+requests
 fpdf
 pandas
