@@ -2,56 +2,52 @@ import streamlit as st
 import google.generativeai as genai
 import requests
 import time
-import speech_recognition as sr  # Asegúrate de que esto siga instalado
 
 # ==========================================
 # ⚙️ 1. CONFIGURACIÓN Y ESTILOS
 # ==========================================
-st.set_page_config(page_title="Quantum Mind Access", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="Quantum Mind", page_icon="🧠", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: white; }
-    /* Hacemos el reproductor de audio más grande para accesibilidad */
-    audio { width: 100%; height: 60px; }
+    audio { width: 100%; height: 50px; }
     /* Estilo para el contenedor de Login */
     .login-container {
-        text-align: center;
-        padding: 50px;
-        background-color: #161B22;
-        border-radius: 20px;
-        margin-top: 50px;
+        text-align: center; padding: 50px; background-color: #161B22;
+        border-radius: 20px; margin-top: 50px; border: 1px solid #30363D;
     }
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] { background-color: #161B22; }
     </style>
     """, unsafe_allow_html=True)
 
-# Inicializar Estado de Sesión
-if "mensajes" not in st.session_state:
-    st.session_state.mensajes = []
-if "usuario_activo" not in st.session_state:
-    st.session_state.usuario_activo = None
+# Inicializar Estado
+if "mensajes" not in st.session_state: st.session_state.mensajes = []
+if "usuario_activo" not in st.session_state: st.session_state.usuario_activo = None
 
-# Configurar API Keys
+# Configurar APIs
 GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY")
 ELEVEN_KEY = st.secrets.get("ELEVENLABS_API_KEY")
 ACCESO_KEYS = st.secrets.get("access_keys", {})
 
-# Configurar Gemini
-#if GOOGLE_API_KEY:
-    #genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
-#else:
-    #st.error("Falta la GOOGLE_API_KEY")
-    #st.stop()
+# Configurar Gemini (Modelo Flash para rapidez y audio)
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+    # Usamos el modelo Flash que soporta audio nativo
+    model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    st.error("⚠️ Falta la GOOGLE_API_KEY en Secrets.")
+    st.stop()
 
 # ==========================================
-# 🔊 2. FUNCIONES DE MOTOR (VOZ Y TEXTO)
+# 🔊 2. FUNCIONES (MOTOR)
 # ==========================================
 
 def texto_a_voz_elevenlabs(texto):
     """Genera audio con ElevenLabs"""
     if not ELEVEN_KEY: return None
-    url = "https://api.elevenlabs.io/v1/text-to-speech/jsCqWAovK2LkecY7zXl4" # Voz Freya
+    url = "https://api.elevenlabs.io/v1/text-to-speech/jsCqWAovK2LkecY7zXl4"
     headers = { "xi-api-key": ELEVEN_KEY, "Content-Type": "application/json" }
     data = { "text": texto[:400], "model_id": "eleven_multilingual_v2" }
     try:
@@ -59,142 +55,156 @@ def texto_a_voz_elevenlabs(texto):
         return response.content if response.status_code == 200 else None
     except: return None
 
-def transcribir_audio(audio_file):
-    """Convierte audio a texto usando SpeechRecognition"""
-    r = sr.Recognizer()
+def procesar_entrada_gemini(texto=None, audio_bytes=None, contexto=""):
+    """Envía Texto o Audio a Gemini y recibe respuesta"""
     try:
-        with sr.AudioFile(audio_file) as source:
-            audio_data = r.record(source)
-            # Intentamos español, si falla, no rompe la app
-            texto = r.recognize_google(audio_data, language="es-MX")
-            return texto
+        prompt_sistema = f"Actúa como psicólogo empático. {contexto}. Responde brevemente y con calidez."
+        
+        if audio_bytes:
+            # Enviar AUDIO directamente a Gemini (Multimodal)
+            response = model.generate_content([
+                prompt_sistema + " (El usuario te habla por audio, escúchalo y responde):",
+                {"mime_type": "audio/wav", "data": audio_bytes}
+            ])
+        else:
+            # Enviar TEXTO
+            response = model.generate_content(f"{prompt_sistema} El usuario dice: {texto}")
+            
+        return response.text
     except Exception as e:
-        st.warning(f"No pude entender el audio: {e}")
-        return None
-
-def limpiar_texto_clave(texto):
-    """Limpia el texto para comparar contraseñas (quita puntos, mayúsculas, etc)"""
-    if not texto: return ""
-    # Quita puntos, comas y espacios extra, y lo hace minúscula
-    return texto.lower().replace(".", "").replace(",", "").strip()
+        return f"Error conectando con mi cerebro: {str(e)}"
 
 # ==========================================
 # 🔐 3. LÓGICA DE LOGIN (PORTERO)
 # ==========================================
 
 if not st.session_state.usuario_activo:
-    # --- PANTALLA DE ACCESO ---
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("<div class='login-container'><h1>Quantum Mind 🧠</h1><p>Acceso por Voz o Texto</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='login-container'><h1>Quantum Mind 🧠</h1><p>Espacio Seguro de Escucha</p></div>", unsafe_allow_html=True)
         
-        # INPUT 1: MICROFONO DE ACCESO
-        st.markdown("### 🎙️ Opción A: Di tu clave")
-        audio_login = st.audio_input("Toca para hablar (Di 'Demo')", key="login_mic")
+        # Opciones de Login
+        tab1, tab2 = st.tabs(["🎙️ Voz", "⌨️ Texto"])
         
-        # INPUT 2: TEXTO
-        st.markdown("### ⌨️ Opción B: Escribe tu clave")
-        texto_login = st.text_input("Clave de acceso", type="password", label_visibility="collapsed")
-        btn_entrar = st.button("Entrar")
-
-        # PROCESAR INTENTO DE LOGIN
         clave_detectada = None
         
-        # Caso A: Usó Voz
-        if audio_login:
-            with st.spinner("Verificando voz..."):
-                transcripcion = transcribir_audio(audio_login)
-                if transcripcion:
-                    st.info(f"Escuché: '{transcripcion}'")
-                    clave_detectada = limpiar_texto_clave(transcripcion)
-        
-        # Caso B: Usó Texto
-        if btn_entrar and texto_login:
-            clave_detectada = limpiar_texto_clave(texto_login)
+        with tab1:
+            audio_login = st.audio_input("Di tu clave (Ej: 'Demo')", key="login_mic")
+            if audio_login:
+                # Usamos Gemini para "Oír" la clave
+                bytes_data = audio_login.read()
+                try:
+                    res = model.generate_content(["Transcribe EXACTAMENTE solo lo que dice este audio:", {"mime_type": "audio/wav", "data": bytes_data}])
+                    clave_detectada = res.text.strip().lower().replace(".","")
+                    st.info(f"Escuché: {clave_detectada}")
+                except: st.warning("No pude escuchar bien.")
 
-        # VERIFICACIÓN FINAL
+        with tab2:
+            texto_login = st.text_input("Clave de acceso", type="password")
+            if st.button("Entrar"): clave_detectada = texto_login.strip().lower()
+
+        # Validación
         if clave_detectada:
-            # Buscamos si la clave está en los secrets (comparando en minúsculas)
-            # Convertimos las llaves del secret a minusculas para comparar
             llaves_validas = {k.lower(): v for k, v in ACCESO_KEYS.items()}
-            
             if clave_detectada in llaves_validas:
                 st.session_state.usuario_activo = llaves_validas[clave_detectada]
-                st.success(f"¡Bienvenido, {st.session_state.usuario_activo}!")
-                
-                # Feedback auditivo de éxito (Opcional)
-                bienvenida_audio = texto_a_voz_elevenlabs(f"Bienvenido al sistema, {st.session_state.usuario_activo}. Te escucho.")
-                if bienvenida_audio:
-                    st.audio(bienvenida_audio, format="audio/mp3", autoplay=True)
-                
-                time.sleep(2) # Dar tiempo a escuchar
-                st.rerun() # 🚀 RECARGAR PARA ENTRAR A LA APP
+                st.success("¡Acceso Correcto!")
+                time.sleep(1)
+                st.rerun()
             else:
-                st.error(f"⛔ Acceso denegado. '{clave_detectada}' no es una clave válida.")
-
-    st.stop() # 🛑 DETIENE EL CÓDIGO AQUÍ SI NO HA ENTRADO
+                st.error("⛔ Clave incorrecta.")
+    st.stop()
 
 # ==========================================
-# 🏠 4. APP PRINCIPAL (SOLO SI YA ENTRÓ)
+# 🏠 4. APP PRINCIPAL (CON BARRA LATERAL)
 # ==========================================
 
-st.sidebar.title(f"Hola, {st.session_state.usuario_activo}")
-if st.sidebar.button("Cerrar Sesión"):
-    st.session_state.usuario_activo = None
-    st.rerun()
+# --- BARRA LATERAL RECUPERADA ---
+with st.sidebar:
+    st.title(f"Hola, {st.session_state.usuario_activo}")
+    
+    st.markdown("### ⚙️ Preferencias")
+    profundidad = st.radio("Profundidad:", ["Escucha Breve", "Apoyo Emocional", "Orientación Teórica"])
+    
+    st.markdown("---")
+    
+    if st.button("🧹 Nueva Sesión"):
+        st.session_state.mensajes = []
+        st.rerun()
+        
+    st.markdown("---")
+    st.markdown("### 🚑 Ayuda Profesional")
+    ciudad = st.selectbox("Ciudad:", ["CDMX", "Monterrey", "Guadalajara", "Online"])
+    if st.button("Encuentra Psicólogo"):
+        st.info(f"Buscando especialistas en {ciudad}...")
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("🔒 Cerrar Sesión"):
+        st.session_state.usuario_activo = None
+        st.rerun()
 
+# --- ZONA PRINCIPAL ---
 st.title("Quantum Mind 🧠")
-st.caption("Tu espacio seguro. Habla con libertad.")
+st.caption(f"Modo: {profundidad}. Tu espacio seguro.")
 
-# --- ZONA DE AUDIO (ACCESIBILIDAD) ---
-audio_usuario = st.audio_input("🎤 Toca para hablar (Modo Terapia)", key="chat_mic")
+# Input de Voz Híbrido
+audio_chat = st.audio_input("🎤 Toca para hablar (Te responderé con voz)", key="chat_mic")
 
-# --- HISTORIAL ---
-for mensaje in st.session_state.mensajes:
-    with st.chat_message(mensaje["role"]):
-        st.markdown(mensaje["content"])
-        if "audio" in mensaje:
-            st.audio(mensaje["audio"], format="audio/mp3")
+# Historial
+for msg in st.session_state.mensajes:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+        if "audio" in msg: st.audio(msg["audio"], format="audio/mp3")
 
-# --- PROCESAMIENTO ---
-pregunta = None
-modo = "texto"
+# Lógica de Respuesta
+pregunta_usuario = None
+es_audio = False
 
-# 1. Voz
-if audio_usuario:
-    modo = "voz"
-    transcripcion = transcribir_audio(audio_usuario)
-    if transcripcion:
-        pregunta = transcripcion
-        # Mostrar lo que dijo el usuario
-        with st.chat_message("user"):
-            st.markdown(f"🎤 {pregunta}")
-            st.session_state.mensajes.append({"role": "user", "content": f"🎤 {pregunta}"})
+# 1. Si hay audio nuevo
+if audio_chat:
+    # IMPORTANTE: Streamlit recarga al usar audio, verificamos si ya procesamos este
+    # (En MVP simple, procesamos siempre que no sea nulo)
+    es_audio = True
+    pregunta_usuario = "Audio del usuario" # Placeholder visual
 
-# 2. Texto
+# 2. Si hay texto
 elif prompt := st.chat_input("Escribe aquí..."):
-    modo = "texto"
-    pregunta = prompt
-    with st.chat_message("user"):
-        st.markdown(pregunta)
-        st.session_state.mensajes.append({"role": "user", "content": pregunta})
+    pregunta_usuario = prompt
+    with st.chat_message("user"): st.markdown(prompt)
+    st.session_state.mensajes.append({"role": "user", "content": prompt})
 
-# 3. Respuesta IA
-if pregunta:
+# 3. Procesar y Responder
+if pregunta_usuario and (es_audio or prompt):
+    # Evitar repetición en bucle infinito (control simple)
+    if es_audio:
+         # Mostrar visualmente que se recibió audio
+         with st.chat_message("user"): st.markdown("🎤 *Mensaje de voz enviado*")
+    
     with st.chat_message("assistant"):
-        with st.spinner("Pensando..."):
-            prompt_sistema = f"Actúa como un psicólogo empático. El usuario dice: '{pregunta}'. Responde brevemente y con calidez."
-            response = model.generate_content(prompt_sistema)
-            texto_resp = response.text
+        with st.spinner("Escuchando y pensando..."):
             
-            st.markdown(texto_resp)
+            respuesta_texto = ""
             
-            audio_bytes = None
-            if modo == "voz":
-                audio_bytes = texto_a_voz_elevenlabs(texto_resp)
-                if audio_bytes:
-                    st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+            if es_audio:
+                # ENVIAR AUDIO DIRECTO A GEMINI
+                bytes_audio = audio_chat.read()
+                contexto = f"El usuario eligió el modo: {profundidad}"
+                respuesta_texto = procesar_entrada_gemini(audio_bytes=bytes_audio, contexto=contexto)
+            else:
+                # ENVIAR TEXTO
+                contexto = f"El usuario eligió el modo: {profundidad}"
+                respuesta_texto = procesar_entrada_gemini(texto=pregunta_usuario, contexto=contexto)
             
-            msg = {"role": "assistant", "content": texto_resp}
-            if audio_bytes: msg["audio"] = audio_bytes
+            st.markdown(respuesta_texto)
+            
+            # Generar Audio de Salida (Solo si el usuario usó voz)
+            audio_salida = None
+            if es_audio:
+                audio_salida = texto_a_voz_elevenlabs(respuesta_texto)
+                if audio_salida:
+                    st.audio(audio_salida, format="audio/mp3", autoplay=True)
+            
+            # Guardar
+            msg = {"role": "assistant", "content": respuesta_texto}
+            if audio_salida: msg["audio"] = audio_salida
             st.session_state.mensajes.append(msg)
