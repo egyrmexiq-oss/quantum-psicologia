@@ -35,7 +35,7 @@ ACCESO_KEYS = st.secrets.get("access_keys", {})
     #genai.configure(api_key=GOOGLE_API_KEY)
     #try:
         # Usamos 1.5-flash. La versión 2.5 no existe públicamente aún y causa error.
-model = genai.GenerativeModel('gemini-2.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
     #except Exception as e:
         #st.error(f"Error configurando modelo: {e}")
 #else:
