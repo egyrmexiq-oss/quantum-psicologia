@@ -4,6 +4,7 @@ import speech_recognition as sr
 from gtts import gTTS
 from io import BytesIO
 import time
+from openai import OpenAI
 
 # ==========================================
 # ⚙️ 1. CONFIGURACIÓN Y ESTILOS
