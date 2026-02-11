@@ -9,7 +9,11 @@ import time
 # ⚙️ 1. CONFIGURACIÓN Y ESTILOS
 # ==========================================
 st.set_page_config(page_title="Quantum Mind", page_icon="🧠", layout="wide")
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
+MODEL_NAME = "gpt-4.1-mini"
+MAX_TOKENS = 300
+TEMPERATURE = 0.7
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: white; }
