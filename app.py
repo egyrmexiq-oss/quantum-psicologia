@@ -156,7 +156,7 @@ def transcribir_google(audio_widget):
 
 # --- BARRA LATERAL ---
 with st.sidebar:
-   try: st.image("Logo_quantum.png", use_container_width=True)
+    try: st.image("Logo_quantum.png", use_container_width=True)
     except: st.header("QUANTUM")
     
     st.success(f"Hola, {st.session_state.usuario_activo}")
