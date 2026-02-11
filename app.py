@@ -10,7 +10,6 @@ from openai import OpenAI
 # ⚙️ 1. CONFIGURACIÓN Y ESTILOS
 # ==========================================
 st.set_page_config(page_title="Quantum Mind", page_icon="🧠", layout="wide")
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.markdown("""
     <style>
