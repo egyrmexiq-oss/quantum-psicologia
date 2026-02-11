@@ -46,7 +46,7 @@ if not API_KEY:
 
 # Configurar Gemini
 genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 # Inicializar Estado
 if "mensajes" not in st.session_state: st.session_state.mensajes = []
