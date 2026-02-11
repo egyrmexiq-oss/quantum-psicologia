@@ -1,5 +1,5 @@
 import streamlit as st
-#import google.generativeai as genai
+import google.generativeai as genai
 import speech_recognition as sr
 from gtts import gTTS
 from io import BytesIO
@@ -12,9 +12,6 @@ from openai import OpenAI
 st.set_page_config(page_title="Quantum Mind", page_icon="🧠", layout="wide")
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-#MODEL_NAME = "gpt-4.1-mini"
-#MAX_TOKENS = 300
-#TEMPERATURE = 0.7
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; color: white; }
@@ -59,11 +56,8 @@ if "usuario_activo" not in st.session_state: st.session_state.usuario_activo = N
 if "modo_terapia" not in st.session_state: st.session_state.modo_terapia = "Escucha Empática"
 
 # Configurar Gemini
-#genai.configure(api_key=GOOGLE_API_KEY)
-#model = genai.GenerativeModel('gemini-2.5-flash')
-MODEL_NAME = "gpt-4.1-mini"
-MAX_TOKENS = 300
-TEMPERATURE = 0.7
+genai.configure(api_key=GOOGLE_API_KEY)
+model = genai.GenerativeModel('gemini-2.5-flash')
 # ==========================================
 # 🔊 2. MOTORES DE VOZ (SOLO GOOGLE GRATIS)
 # ==========================================
