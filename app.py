@@ -43,7 +43,7 @@ if "usuario_activo" not in st.session_state: st.session_state.usuario_activo = N
 if "modo_terapia" not in st.session_state: st.session_state.modo_terapia = "Escucha Empática"
 
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # ==========================================
 # 🔊 2. MOTORES
