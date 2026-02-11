@@ -161,7 +161,7 @@ with st.sidebar:
     
     st.success(f"Hola, {st.session_state.usuario_activo}")
     #st.set_page_config(page_title="Quantum Mind AI", page_icon="Logo_quantum.png", layout="wide")
-    st.image("https://cdn-icons-png.flaticon.com/512/3062/3062634.png", width=50) # Icono cerebro simple
+    #st.image("https://cdn-icons-png.flaticon.com/512/3062/3062634.png", width=50) # Icono cerebro simple
     st.title(f"Hola, {st.session_state.usuario_activo}")
     st.caption(f"👀 Visitas Totales: **{st.session_state.visitas_contador:,}**")
     
